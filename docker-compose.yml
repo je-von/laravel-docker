@@ -1,66 +1,51 @@
 version: '3'
 services:
-
-  #Laravel App
+  
+  #PHP Service
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: web/laravel
+    image: [your domain]/php
     container_name: app
     restart: unless-stopped
     tty: true
     environment:
       SERVICE_NAME: app
       SERVICE_TAGS: dev
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
+    working_dir: /var/www
     networks:
-      - mynet
+      - app-network
 
   #Nginx Service
-  nginx:
+  webserver:
     image: nginx:alpine
-    container_name: nginx
+    container_name: webserver
     restart: unless-stopped
     tty: true
     ports:
       - "80:80"
-    volumes:
-      - ./:/var/www/html
-      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - "443:443"
     networks:
-      - mynet
+      - app-network
 
   #MySQL Service
   db:
-    image: mysql:5.7
+    image: mysql:5.7.22
     container_name: db
     restart: unless-stopped
     tty: true
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: laraveldb
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: laravelpassworddb
-      MYSQL_ROOT_PASSWORD: rootpasswordmysql
-    volumes:
-      - mysqldata:/var/lib/mysql/
+      MYSQL_DATABASE: [your db name]_db
+      MYSQL_ROOT_PASSWORD: [your password]
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
     networks:
-      - mynet
-
-  php:
-    image: php:8.1.0-fpm
-    volumes:
-      - ./fitter:/var/www
+      - app-network
 
 #Docker Networks
 networks:
-  mynet:
+  app-network:
     driver: bridge
-#Volumes
-volumes:
-  mysqldata:
-    driver: local
