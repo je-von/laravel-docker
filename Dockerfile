@@ -1,51 +1,48 @@
-# Set master image
-FROM php:8.1-fpm-alpine
+FROM php:8.1.0-fpm
 
 # Copy composer.lock and composer.json
-COPY composer.lock composer.json /var/www/html/
+COPY composer.lock composer.json /var/www/
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www
 
-# Install Additional dependencies
-RUN apk update && apk add --no-cache \
-    build-base shadow vim curl \
-    php8 \
-    php8-fpm \
-    php8-common \
-    php8-pdo \
-    php8-pdo_mysql \
-    php8-mysqli \
-#     php7-mcrypt \
-    php8-mbstring \
-    php8-xml \
-    php8-openssl \
-    php8-json \
-    php8-phar \
-    php8-zip \
-    php8-gd \
-    php8-dom \
-    php8-session \
-    php8-zlib
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    locales \
+    zip \
+    jpegoptim optipng pngquant gifsicle \
+    vim \
+    unzip \
+    git \
+    curl
 
-# Add and Enable PHP-PDO Extenstions
-RUN docker-php-ext-install pdo pdo_mysql
-RUN docker-php-ext-enable pdo_mysql
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP Composer
+# Install extensions
+RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl
+RUN docker-php-ext-configure gd --with-gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ --with-png-dir=/usr/include/
+RUN docker-php-ext-install gd
+
+# Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Remove Cache
-RUN rm -rf /var/cache/apk/*
+# Add user for laravel application
+RUN groupadd -g 1000 www
+RUN useradd -u 1000 -ms /bin/bash -g www www
 
-# Add UID '1000' to www-data
-RUN usermod -u 1000 www-data
+# Copy existing application directory contents
+COPY . /var/www
 
 # Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www/html
+COPY --chown=www:www . /var/www
 
 # Change current user to www
-USER www-data
+USER www
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
